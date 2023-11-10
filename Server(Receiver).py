@@ -42,7 +42,3 @@ try:
 finally:
     zeroconf.unregister_service(info)
     zeroconf.close()
-
-
-
-
