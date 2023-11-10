@@ -1,37 +1,39 @@
 import socket
-from zeroconf import Zeroconf, ServiceBrowser, ServiceStateChange
+from zeroconf import Zeroconf, ServiceBrowser
 
-def on_service_state_change(zeroconf, service_type, name, state_change):
-    if state_change is ServiceStateChange.Added:
-        info = zeroconf.get_service_info(service_type, name)
+class ServiceListener:
+    def remove_service(self, zeroconf, type, name):
+        pass
+
+    def add_service(self, zeroconf, type, name):
+        info = zeroconf.get_service_info(type, name)
         if info:
-            print(f"Discovered service: {info.server} at {socket.inet_ntoa(info.address)}:{info.port}")
-            send_file(socket.inet_ntoa(info.address), info.port)
+            self.connect_to_server(socket.inet_ntoa(info.address), info.port)
 
-def send_file(ip, port):
-    client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    client_socket.connect((ip, port))
+    def connect_to_server(self, server_ip, server_port):
+        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        client_socket.connect((server_ip, server_port))
 
-    file_to_send = input("Enter the path of the file to send: ")
+        file_to_send = input("Enter the path of the file to send: ")
 
-    with open(file_to_send, 'rb') as file:
+        with open(file_to_send, 'rb') as file:
+            while True:
+                data = file.read(1024)
+                if not data:
+                    break
+                client_socket.sendall(data)
+
+        print(f"File sent successfully: {file_to_send}")
+
+        client_socket.close()
+
+if __name__ == "__main__":
+    zeroconf = Zeroconf()
+    listener = ServiceListener()
+    browser = ServiceBrowser(zeroconf, "_filetransfer._tcp.local.", listener)
+
+    try:
         while True:
-            data = file.read(1024)
-            if not data:
-                break
-            client_socket.sendall(data)
-
-    print(f"File sent successfully: {file_to_send}")
-
-    client_socket.close()
-
-service_type = "_transfer._tcp.local."
-
-# mDNS Service Discovery
-zeroconf = Zeroconf()
-browser = ServiceBrowser(zeroconf, service_type, handlers=[on_service_state_change])
-
-try:
-    input("Press Enter to exit...\n")
-finally:
-    zeroconf.close()
+            pass
+    except KeyboardInterrupt:
+        zeroconf.close()
