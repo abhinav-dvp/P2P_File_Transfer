@@ -1,4 +1,5 @@
 import socket
+from zeroconf import ServiceInfo, Zeroconf
 
 def receive_file(port):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -24,9 +25,24 @@ def receive_file(port):
     client_socket.close()
     server_socket.close()
 
-if __name__ == "__main__":
-    port = int(input("Enter the port to listen on: "))
+port = int(input("Enter the port to listen on: "))
+
+# mDNS Service Registration
+desc = {'path': '/transfer'}
+info = ServiceInfo("_transfer._tcp.local.",
+                    f"Transfer-{socket.gethostname()}._transfer._tcp.local.",
+                    socket.inet_aton(socket.gethostbyname(socket.gethostname())),
+                    port, 0, 0, desc)
+
+zeroconf = Zeroconf()
+zeroconf.register_service(info)
+
+try:
     receive_file(port)
+finally:
+    zeroconf.unregister_service(info)
+    zeroconf.close()
+
 
 
 
