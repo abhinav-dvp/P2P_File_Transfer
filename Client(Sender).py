@@ -16,36 +16,41 @@ def send_file(ip, port, file_path):
 
     client_socket.close()
 
-def discover_server(port, timeout=5):
+def broadcast_message(message, port):
+    # Create a socket
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    # Enable broadcasting on the socket
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-    client_socket.bind(('0.0.0.0', 0))
+    # Set up the client address
+    client_address = ('255.255.255.255', port)
 
-    message = b"DISCOVER_SERVER"
-
-    start_time = time.time()
-
-    while time.time() - start_time < timeout:
-        client_socket.sendto(message, ('<broadcast>', port))
+    while True:
+        # Send the broadcast message
+        print("Broadcasting")
+        client_socket.sendto(message.encode(), client_address)
+        # Set a timeout for receiving the server IP address
+        client_socket.settimeout(1)
         try:
-            data, server_address = client_socket.recvfrom(1024)
-            if data.decode() == "SERVER_FOUND":
-                return server_address[0]
-        except socket.error:
+            # Receive the server IP address
+            data, address = client_socket.recvfrom(1024)
+            return data.decode()
+        except socket.timeout:
+            # No response received within the timeout, continue broadcasting
             pass
-
-    return None
+        finally:
+            # Reset the timeout to None
+            client_socket.settimeout(None)
 
 if __name__ == "__main__":
-    server_port = int(input("Enter the server port: "))
     file_to_send = input("Enter the path of the file to send: ")
 
     # Discover the server IP address
-    server_ip = discover_server(server_port)
+    server_ip = broadcast_message("FIND_SERVER", 6000)
 
     if server_ip:
         print(f"Server found at {server_ip}")
-        send_file(server_ip, server_port, file_to_send)
+        send_file(server_ip, 6000, file_to_send)
     else:
         print("Server not found.")

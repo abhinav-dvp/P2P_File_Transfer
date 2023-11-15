@@ -1,5 +1,29 @@
 import socket
 
+def receive_broadcast(port):
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+
+    server_address = ('', port)
+
+    server_socket.bind(server_address)
+
+    print(f"Listening for broadcasts on port {port}...")
+
+    x = True
+    while x == True:
+        # Receive the broadcast message
+        print ("Condition X = ", x)
+        data, address = server_socket.recvfrom(1024)
+        print(f"Received Broadcast from : {address}")
+
+        # Send the server IP address to the client
+        if data.decode() == "FIND_SERVER":
+            server_socket.sendto(socket.gethostbyname(socket.gethostname()).encode(), address)
+            server_socket.close()
+            x = False
+
 def receive_file(port):
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind(('0.0.0.0', port))
@@ -25,5 +49,7 @@ def receive_file(port):
     server_socket.close()
 
 if __name__ == "__main__":
-    port = int(input("Enter the port to listen on: "))
-    receive_file(port)
+    receive_broadcast(6000)
+    receive_file(6000)
+
+
